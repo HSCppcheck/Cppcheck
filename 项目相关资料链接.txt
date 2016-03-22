@@ -1,0 +1,6 @@
+项目相关：
+1.Cppcheck参考文档：http://www.doc88.com/p-2075378903086.html
+2.Cppcheck项目开源SourceForge：http://cppcheck.sourceforge.net
+
+课程相关：
+1.关于工厂模式查到的一些资料：http://design-patterns.readthedocs.org/zh_CN/latest/creational_patterns/creational.html
