@@ -1,0 +1,16 @@
+1.
+    demo *pointer1 = NULL;// NULL或任何未初始化
+    demo *pointer2 = pointer1;
+    pointer1->func();
+    pointer2->func();
+    空指针的间访
+2.
+    demo *pointer3 = new demo();
+    delete pointer3;
+    demo *po4 = pointer3;
+    pointer3->func();
+    po4->func();
+    野指针的赋值、访问
+3.
+    动态分配的指针变量定义时如未被分配空间必须初始化为NULL
+    int* a;
