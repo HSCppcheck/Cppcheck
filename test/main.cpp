@@ -1,9 +1,8 @@
-class demo;
 int main()
 {
-	demo *p1 = new demo();
+    int *p1 = new int(0);
     delete p1;
-    demo *p2 = p1;
-    p1->func();
-    p2->func();
+    int *p2 = p1;
+    *p1=0;
+    *p2=0;
 }
