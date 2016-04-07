@@ -4,3 +4,4 @@
 
 课程相关：
 1.关于工厂模式查到的一些资料：http://design-patterns.readthedocs.org/zh_CN/latest/creational_patterns/creational.html
+2.关于管道过滤器模式的一篇论文：http://wenku.baidu.com/link?url=8zsmZj_cf9Ou6kxzTGIPnBCzpZDtySZ-pn-Op8V-2GTNPeVvll7clZEGXVakY529NY1wUYeFKQQOMBL0_RTZvQan5rr2okcHqPUFIuOlica
