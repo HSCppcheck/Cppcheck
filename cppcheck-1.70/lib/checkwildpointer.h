@@ -37,18 +37,14 @@ public:
 	}
 
 	void wildPointer();
-
-	void judgeDelete();
 	
 private:
 	void wildPointerError(const Token *tok, const std::string strValue);
-	void judgeDeleteError(const Token *tok, const std::string strValue);
 	
 	/** Get error messages. Used by --errorlist */
 	void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const {
 		CheckWildPointer c(0, settings, errorLogger);
 		c.wildPointerError(0,0);
-		c.judgeDeleteError(0,0);
 	}
 
 	/** Name of check */
