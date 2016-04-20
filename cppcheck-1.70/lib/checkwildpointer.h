@@ -28,7 +28,6 @@ public:
 	void runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
 		CheckWildPointer checkWildPointer(tokenizer, settings, errorLogger);
 		checkWildPointer.wildPointer();
-		checkWildPointer.judgeDelete();
 	}
 
 	/** @brief Run checks against the simplified token list */

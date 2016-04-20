@@ -2,7 +2,10 @@
 #include "checkwildpointer.h"
 #include "mathlib.h"
 #include "symboldatabase.h"
+#include "valueflow.h"
 #include <cctype>
+
+#include <set>
 //---------------------------------------------------------------------------
 
 // Register this check class (by creating a static instance of it)
@@ -12,28 +15,30 @@ namespace {
 
 void CheckWildPointer::wildPointer()
 {
-	int flag = 0;
-	std::string isWildPointer;
 	for (const Token* tok = _tokenizer->tokens(); tok; tok = tok->next())
 	{
-		if (Token::Match(tok, "delete|free"))
-		{
-			const Token *cutPointer = tok->tokAt(1);
-			//The value of isWildPointe is p1 in this judge
-			isWildPointer = cutPointer->str(); 
-			//wildPointerError(tok, store);
-		}
+		const Token *wildUse = nullptr;
 		//find the use of the wildPointer
-		if (Token::Match(tok, "* %var%"))
+		if (Token::Match(tok, "* %var%") && tok->astOperand2() == nullptr)
 		{
-			//find the use of p1
-			const Token *wildUse = tok->tokAt(1);
-			std::string store = wildUse->str();
-			if (store == isWildPointer)
+			wildUse = tok->tokAt(1);
+		}
+		else if (Token::Match(tok, "%var% ."))
+		{
+			wildUse = tok;
+		}
+
+		if (wildUse)
+		{
+			if (wildUse->tokType() == Token::eVariable && wildUse->variable()->isPointer())
 			{
-				if (wildUse->next()->str() == "=")
+				for (auto& value : wildUse->values)
 				{
-					wildPointerError(wildUse, store);
+					if (value.varvalue == ValueFlow::deletedVarId)
+					{
+						wildPointerError(wildUse, wildUse->str());
+						break;
+					}
 				}
 			}
 		}
@@ -43,7 +48,7 @@ void CheckWildPointer::wildPointer()
 void CheckWildPointer::wildPointerError(const Token *tok, const std::string strValue)
 {
 	reportError(tok, Severity::error, "This wildpointer",
-		"Violate rule R-1-6-xx: " + strValue + " Wrong p1");
+		"Violate rule R-1-6-16: Using pointer " + strValue + " of released resource");
 }
 //---------------------------------------------------------------------------
 

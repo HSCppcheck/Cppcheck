@@ -1515,63 +1515,92 @@ static bool valueFlowForward(Token * const               startToken,
     return true;
 }
 
-static void valueFlowAfterAssign(TokenList *tokenlist, SymbolDatabase* symboldatabase, ErrorLogger *errorLogger, const Settings *settings)
+static void valueFlowAfterAssignDelete(TokenList *tokenlist, SymbolDatabase* symboldatabase, ErrorLogger *errorLogger, const Settings *settings)
 {
     const std::size_t functions = symboldatabase->functionScopes.size();
     for (std::size_t i = 0; i < functions; ++i) {
         const Scope * scope = symboldatabase->functionScopes[i];
         for (Token* tok = const_cast<Token*>(scope->classStart); tok != scope->classEnd; tok = tok->next()) {
             // Assignment
-            //if ((tok->str() != " = ") || (tok->astParent())) //removed by TD 
-			if (tok->tokType() != Token::eAssignmentOp || tok->astParent())
-                continue;
-
-            // Lhs should be a variable
-            if (!tok->astOperand1() || !tok->astOperand1()->varId())
-                continue;
-            const unsigned int varid = tok->astOperand1()->varId();
-            const Variable *var = tok->astOperand1()->variable();
-            if (!var || (!var->isLocal() && !var->isArgument()))
-                continue;
-
-            const Token * const endOfVarScope = var->typeStartToken()->scope()->classEnd;
-
-            // Rhs values..
-            if (!tok->astOperand2())
-                continue;
-            std::list<ValueFlow::Value> values = tok->astOperand2()->values;
-            const bool constValue = tok->astOperand2()->isNumber();
-			if (constValue){//added by TD
-				values.push_back((ValueFlow::Value(MathLib::toLongNumber(tok->astOperand2()->str()))));
-			}
-			
-			if (tok->astOperand1()->variable()->isPointer() 
-				&& tok->astOperand2()->tokType() == Token::eVariable
-				&& tok->astOperand2()->variable()->isArrayOrPointer()){
-				values.push_back(ValueFlow::Value(tok->astOperand2()->varId()));
-			} 
-			else if (tok->astOperand1()->variable()->isPointer()
-				&& (tok->astOperand2()->str() == "(" || Token::Match(tok->next(), "( %any% [%any%] *)")))
-				values.push_back(ValueFlow::Value(tok->astOperand1()->varId()));
-			else if (tok->astOperand1()->variable()->isPointer()
-				&& (tok->astOperand2()->str() == "new" || Token::Match(tok->next(), "new %any% ( %any% *)")))
+			if (tok->tokType() == Token::eAssignmentOp && tok->astParent() == nullptr)
 			{
-				values.push_back(ValueFlow::Value(tok->next()->next(),0));
-			}
-			else if (tok->astOperand1()->variable()->isPointer() && (tok->astOperand2()->str() == "null"))
-				values.push_back(ValueFlow::Value(0));
-            // Static variable initialisation?
-            if (var->isStatic() && var->nameToken() == tok->astOperand1()) {
-                for (std::list<ValueFlow::Value>::iterator it = values.begin(); it != values.end(); ++it) {
-                    it->changeKnownToPossible();
-                }
-            }
+				// Lhs should be a variable
+				if (!tok->astOperand1() || !tok->astOperand1()->varId())
+					continue;
+				const unsigned int varid = tok->astOperand1()->varId();
+				const Variable *var = tok->astOperand1()->variable();
+				if (!var || (!var->isLocal() && !var->isArgument()))
+					continue;
 
-            valueFlowForward(tok, endOfVarScope, var, varid, values, constValue, tokenlist, errorLogger, settings);
+				const Token * const endOfVarScope = var->typeStartToken()->scope()->classEnd;
+
+				// Rhs values..
+				if (!tok->astOperand2())
+					continue;
+				std::list<ValueFlow::Value> values = tok->astOperand2()->values;
+				const bool constValue = tok->astOperand2()->isNumber();
+				if (constValue){//added by TD
+					values.push_back((ValueFlow::Value(MathLib::toLongNumber(tok->astOperand2()->str()))));
+				}
+
+				/*if (tok->astOperand1()->variable()->isPointer()
+					&& tok->astOperand2()->tokType() == Token::eVariable
+					&& tok->astOperand2()->variable()->isArrayOrPointer()){
+					values.push_back(ValueFlow::Value(tok->astOperand2()->varId()));
+				}
+				else */if (tok->astOperand1()->variable()->isPointer()
+					&& (tok->astOperand2()->str() == "(" || Token::Match(tok->next(), "( %any% [%any%] *)")))
+					values.push_back(ValueFlow::Value(tok->astOperand1()->varId()));
+				else if (tok->astOperand1()->variable()->isPointer()
+					&& (tok->astOperand2()->str() == "new" || Token::Match(tok->next(), "new %any% ( %any% *)")))
+					values.push_back(ValueFlow::Value(tok->tokAt(3), 0));
+				else if (tok->astOperand1()->variable()->isPointer() && (tok->astOperand2()->str() == "null"))
+					values.push_back(ValueFlow::Value(0));
+				// Static variable initialisation?
+				if (var->isStatic() && var->nameToken() == tok->astOperand1()) {
+					for (std::list<ValueFlow::Value>::iterator it = values.begin(); it != values.end(); ++it) {
+						it->changeKnownToPossible();
+					}
+				}
+
+				valueFlowForward(tok, endOfVarScope, var, varid, values, constValue, tokenlist, errorLogger, settings);
+			}
+			else
+			{
+				const Token * tok2 = nullptr;
+
+				if ((tok->str() == "delete") && tok->next())
+				{
+					tok2 = tok->tokAt(1);
+				}
+				else if (Token::Match(tok,"free ( %var% )"))
+				{
+					tok2 = tok->tokAt(2);
+				}
+				
+				if (tok2 == nullptr)
+					continue;
+
+				const unsigned int varid = tok2->varId();
+				const Variable *var = tok2->variable();
+				if (!var)
+					continue;
+
+				const Token * const endOfVarScope = var->typeStartToken()->scope()->classEnd;
+				std::list<ValueFlow::Value> values;
+
+				if (var->isPointer())
+				{
+					ValueFlow::Value v(ValueFlow::deletedVarId);
+					v.setKnown();
+					values.push_back(v);
+				}
+
+				valueFlowForward(tok, endOfVarScope, var, varid, values, false, tokenlist, errorLogger, settings);
+			}	
         }
     }
 }
-
 
 static void valueFlowAfterCondition(TokenList *tokenlist, SymbolDatabase* symboldatabase, ErrorLogger *errorLogger, const Settings *settings)
 {
@@ -2378,7 +2407,7 @@ void ValueFlow::setValues(TokenList *tokenlist, SymbolDatabase* symboldatabase, 
     valueFlowBitAnd(tokenlist);
     valueFlowForLoop(tokenlist, symboldatabase, errorLogger, settings);
     valueFlowBeforeCondition(tokenlist, symboldatabase, errorLogger, settings);
-    valueFlowAfterAssign(tokenlist, symboldatabase, errorLogger, settings);
+    valueFlowAfterAssignDelete(tokenlist, symboldatabase, errorLogger, settings);
     valueFlowAfterCondition(tokenlist, symboldatabase, errorLogger, settings);
     valueFlowSwitchVariable(tokenlist, symboldatabase, errorLogger, settings);
     valueFlowSubFunction(tokenlist, errorLogger, settings);
