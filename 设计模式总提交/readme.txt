@@ -1,0 +1,23 @@
+use UTF-8！！！
+项目目录结构：
+cppcheck二次开发-沈艺浩小组\
+    通讯录.xlsx
+    预验收汇报.pptx
+    readme.txt
+    文档\
+        cppcheck分析报告.doc
+        开发前样例测试分析报告.doc
+        二次开发详细设计报告.doc
+        用户手册.doc
+    src\
+        lib\
+            checkuninitvar.cpp
+            CheckWildPointer.cpp
+            checkwildpointer.h
+            valueflow.cpp
+            valueflow.h
+        test\
+            test1.cpp
+            test2.cpp
+            test3.cpp
+关于文档的说明：
